@@ -1,38 +1,36 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { patients, type Patient, type InsertPatient } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getPatient(id: number): Promise<Patient | undefined>;
+  getPatients(): Promise<Patient[]>;
+  createPatient(patient: InsertPatient): Promise<Patient>;
+  updatePatientStatus(id: number, status: string): Promise<Patient>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  async getPatient(id: number): Promise<Patient | undefined> {
+    const [patient] = await db.select().from(patients).where(eq(patients.id, id));
+    return patient;
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getPatients(): Promise<Patient[]> {
+    return await db.select().from(patients).orderBy(desc(patients.urgencyScore));
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async createPatient(insertPatient: InsertPatient): Promise<Patient> {
+    const [patient] = await db.insert(patients).values(insertPatient).returning();
+    return patient;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async updatePatientStatus(id: number, status: string): Promise<Patient> {
+    const [patient] = await db.update(patients)
+      .set({ status })
+      .where(eq(patients.id, id))
+      .returning();
+    return patient;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
