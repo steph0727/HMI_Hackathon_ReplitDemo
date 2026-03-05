@@ -151,16 +151,19 @@ export default function DoctorDashboard() {
                       </p>
                     </div>
 
-                    <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Extracted Symptoms</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {patient.extractedSymptoms.map((sym, i) => (
-                          <span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold border border-blue-100">
-                            {sym}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="flex flex-wrap items-center gap-2 mt-4">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Symptoms:</span>
+                    {patient.extractedSymptoms.map((sym, i) => (
+                      <span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold border border-blue-100">
+                        {sym}
+                      </span>
+                    ))}
+                    {patient.detectedLanguage && (
+                      <span className="ml-auto px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-bold uppercase border border-blue-100">
+                        {patient.detectedLanguage}
+                      </span>
+                    )}
+                  </div>
 
                     <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">AI Triage Explanation</h4>

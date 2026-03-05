@@ -13,6 +13,7 @@ export const patients = pgTable("patients", {
   urgencyScore: integer("urgency_score").notNull(),
   status: varchar("status", { length: 20 }).notNull().default('waiting'),
   explanation: text("explanation").notNull(),
+  detectedLanguage: text("detected_language"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -54,10 +54,29 @@ export default function Intake() {
       // Convert to base64 for API
       const reader = new FileReader();
       reader.readAsDataURL(blob);
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const base64data = (reader.result as string).split(',')[1];
-        setValue("symptomsInput", base64data);
-        setValue("isAudio", true);
+        
+        // Instant transcription for preview and language detection
+        try {
+          const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audio: base64data })
+          });
+          if (response.ok) {
+            const { text } = await response.json();
+            setValue("symptomsInput", text);
+            setValue("isAudio", false); // Now it's text, so we can treat it as such or keep as is. 
+            // Better to keep it as false so the backend doesn't re-transcribe if we don't want to, 
+            // but the current backend logic re-transcribes if isAudio is true.
+            // Let's set it to false since we already have the text.
+          }
+        } catch (err) {
+          console.error("Transcription error:", err);
+          setValue("symptomsInput", base64data);
+          setValue("isAudio", true);
+        }
       };
     }
   };
@@ -204,9 +223,14 @@ export default function Intake() {
                     {recordedAudioUrl && (
                       <div className="flex flex-col items-center gap-3">
                         <p className="text-emerald-600 font-medium flex items-center gap-1">
-                          <CheckCircle2 className="w-4 h-4" /> Audio captured successfully
+                          <CheckCircle2 className="w-4 h-4" /> Audio transcribed successfully
                         </p>
-                        <audio src={recordedAudioUrl} controls className="h-10 w-full max-w-[250px]" />
+                        <textarea 
+                          {...register("symptomsInput")}
+                          rows={4}
+                          className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none"
+                          placeholder="Transcribed symptoms will appear here..."
+                        />
                         <button 
                           type="button" 
                           onClick={handleRecordToggle}

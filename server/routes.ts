@@ -50,6 +50,20 @@ export async function registerRoutes(
 
   await seedDatabase();
 
+  app.post("/api/transcribe", async (req, res) => {
+    try {
+      const { audio } = req.body;
+      if (!audio) return res.status(400).json({ message: "No audio provided" });
+      const rawBuffer = Buffer.from(audio, "base64");
+      const { buffer: audioBuffer, format: inputFormat } = await ensureCompatibleFormat(rawBuffer);
+      const text = await speechToText(audioBuffer, inputFormat);
+      res.json({ text });
+    } catch (error) {
+      console.error("Transcription error:", error);
+      res.status(500).json({ message: "Failed to transcribe" });
+    }
+  });
+
   app.get(api.patients.list.path, async (req, res) => {
     try {
       const patientsList = await storage.getPatients();
@@ -95,12 +109,14 @@ export async function registerRoutes(
 
       const systemPrompt = `You are a medical triage AI designed for clinics in developing countries. Analyze the patient data and calculate an urgency score from 1-10 (10 being highest urgency).
 Extract symptoms into an array of strings. 
+Identify the language used in the symptoms input.
 Provide a brief explanation for the score based on symptoms and risk factors (age, medical history, family history).
 Respond ONLY in JSON format matching this structure:
 {
   "extractedSymptoms": ["symptom1", "symptom2"],
   "urgencyScore": 8,
-  "explanation": "Brief explanation..."
+  "explanation": "Brief explanation...",
+  "detectedLanguage": "English"
 }`;
 
       const aiResponse = await openai.chat.completions.create({
@@ -123,7 +139,8 @@ Respond ONLY in JSON format matching this structure:
         extractedSymptoms: aiResult.extractedSymptoms || [],
         urgencyScore: aiResult.urgencyScore || 1,
         status: "waiting",
-        explanation: aiResult.explanation || "No explanation provided."
+        explanation: aiResult.explanation || "No explanation provided.",
+        detectedLanguage: aiResult.detectedLanguage || "Unknown"
       });
       
       res.status(201).json(patient);
